@@ -1,0 +1,22 @@
+#include "EchoClient.h"
+
+#include <iostream>
+
+int main(int argc, char** argv) {
+    if (argc < 3) {
+        std::cerr<< "usage: client <ADDR> <PORT>"<< std::endl;
+        return -1;
+    }
+    int port;
+    try {
+        port = std::stoi(argv[2]);
+    } catch (std::exception const& err) {
+        std::cerr<< "parse port failed: " << err.what() <<std::endl;
+    }
+    try {
+        echo::EchoClient client = echo::EchoClient(port, argv[1]);
+        client.Start();
+    } catch (std::exception const& err) {
+        std::cerr<< "start client failed: " << err.what() <<std::endl;
+    }
+}
