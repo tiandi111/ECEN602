@@ -15,29 +15,21 @@
 
 namespace echo {
 
+/*
+ * EchoClient implements the network echo protocol.
+ * Once started, the client read a line of characters from stdin, send it to the target server
+ * and read back and print the line.
+ */
 class EchoClient {
   public:
-    EchoClient(int _port, const std::string& _addr) :
-            port(_port), addr(_addr){
-
-        sockfd = socket(AF_INET, SOCK_STREAM, getprotobyname("tcp")->p_proto);
-        if (sockfd < 0) {
-            throw std::runtime_error("create socket failed");
-        }
-
-        sockAddr.sin_family=AF_INET;
-        sockAddr.sin_port=port;
-        sockAddr.sin_addr.s_addr=inet_addr(addr.c_str());
-
-        if (connect(sockfd, (sockaddr*)&sockAddr, sizeof(sockAddr))<0) {
-            throw std::runtime_error("connect server failed");
-        }
-    }
+    EchoClient(int _port, const std::string& _addr) : port(_port), addr(_addr){}
     ~EchoClient() {
         close(sockfd);
     }
+    /*
+     * start the client in blocking mode.
+     */
     void Start();
-    void Stop();
 
   private:
     in_port_t port;

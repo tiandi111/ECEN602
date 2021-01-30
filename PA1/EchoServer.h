@@ -15,33 +15,20 @@
 
 namespace echo {
 
+/*
+ * EchoServer implements the network echo protocol.
+ * The server can server multiple client concurrently, echo back each line received from clients.
+ */
 class EchoServer {
   public:
-    EchoServer(int _port, const std::string& _addr, int _backlog) :
-            port(_port), addr(_addr), backlog(_backlog) {
-
-        sockfd = socket(AF_INET, SOCK_STREAM, getprotobyname("tcp")->p_proto);
-        if(sockfd < 0) {
-            throw std::runtime_error("create socket failed");
-        }
-
-        sockAddr.sin_family=AF_INET;
-        sockAddr.sin_port=port;
-        sockAddr.sin_addr.s_addr=inet_addr(addr.c_str());
-
-        if(bind(sockfd, (struct sockaddr*)&sockAddr, sizeof(sockAddr)) < 0) {
-            throw std::runtime_error("bind socket failed");
-        }
-
-        if(listen(sockfd, backlog) < 0) {
-            throw std::runtime_error("listen socket failed");
-        }
-    }
+    EchoServer(int _port, const std::string& _addr, int _backlog) : port(_port), addr(_addr), backlog(_backlog) {}
     ~EchoServer() {
         close(sockfd);
     }
+    /*
+     * start the server in blocking mode.
+     */
     void Start();
-    void Stop();
 
   private:
     in_port_t port;

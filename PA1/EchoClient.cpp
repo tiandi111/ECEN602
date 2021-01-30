@@ -9,25 +9,40 @@
 #include <cstring>
 #include <iostream>
 
-#include "reader.h"
+#include "Reader.h"
 #include "utils.h"
 
 void echo::EchoClient::Start() {
-    ssize_t received;
+    // connect to the server
+    sockfd = socket(AF_INET, SOCK_STREAM, getprotobyname("tcp")->p_proto);
+    if (sockfd < 0) {
+        throw std::runtime_error("create socket failed");
+    }
+
+    sockAddr.sin_family=AF_INET;
+    sockAddr.sin_port=port;
+    sockAddr.sin_addr.s_addr=inet_addr(addr.c_str());
+
+    if (connect(sockfd, (sockaddr*)&sockAddr, sizeof(sockAddr))<0) {
+        throw std::runtime_error("connect server failed");
+    }
+
+    ssize_t recv;
     char buf[BUFFER_SIZE];
     SocketReader reader(sockfd);
+    // start echoing
     while (true) {
-        // get lines from stdin
+        // get a line from stdin
         if (fgets(buf, BUFFER_SIZE, stdin) != NULL) {
 
             // do echo once
             ssize_t total;
             if((total = echo::WriteSocket(sockfd, buf, strlen(buf))) > 0) {
                 std::cerr<< "write: " << total <<std::endl;
-               if ((received = reader.ReadLine(nullptr, buf, BUFFER_SIZE)) > 0) {
-                   std::cerr<< "recv: "<< std::string(buf, received).c_str()<< "("<<received<<")" <<std::endl;
+               if ((recv = reader.ReadLine(nullptr, buf, BUFFER_SIZE)) > 0) {
+                   std::cerr<< "recv: "<< std::string(buf, recv).c_str()<< "("<<recv<<")" <<std::endl;
                } else {
-                   std::cerr<< "read line failed: "<< received << std::endl;
+                   std::cerr<< "read line failed: "<< recv << std::endl;
                }
             } else {
                 std::cerr<< "write line failed"<< std::endl;
@@ -37,8 +52,4 @@ void echo::EchoClient::Start() {
             std::cerr<< "get line failed"<< std::endl;
         }
     }
-}
-
-void echo::EchoClient::Stop() {
-
 }

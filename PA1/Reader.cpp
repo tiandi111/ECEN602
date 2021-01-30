@@ -2,7 +2,7 @@
 // Created by 田地 on 2021/1/28.
 //
 
-#include "reader.h"
+#include "Reader.h"
 
 #include <unistd.h>
 
@@ -16,6 +16,7 @@ ssize_t echo::SocketReader::ReadLine(bool* isPrefix, void* dst, ssize_t max) {
     void* dstCur = dst;
 
     do {
+        // read util a newline is met or max-1 is reached
         while ((readl = read(sockfd, buf + cur, BUFFER_SIZE - cur)) > 0) {
             if (readl == 0) { return 0; }
             if (readl > 0) {
@@ -42,7 +43,7 @@ ssize_t echo::SocketReader::ReadLine(bool* isPrefix, void* dst, ssize_t max) {
                 dstCur = (char *) dst + copied;
             }
         }
-    } while (readl == -1 && errno == EINTR);
+    } while (readl == -1 && errno == EINTR); // retry on EINTR
 
     return readl;
 }

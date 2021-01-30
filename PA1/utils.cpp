@@ -15,8 +15,7 @@ ssize_t echo::WriteSocket(int sockfd, const void * buf, int len) {
 
     do {
 
-        for (sent = send(sockfd, buf, len, 0); sent >= 0 && total < len; total += sent) {
-        }
+        for (sent = send(sockfd, buf, len, 0); sent >= 0 && total < len; total += sent) {}
 
     } while (sent == -1 && errno == EINTR);
 

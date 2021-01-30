@@ -14,14 +14,30 @@
 
 namespace echo {
 
+/*
+ * SocketReader a helper class to read character from a given socket.
+ */
 class SocketReader {
   public:
     SocketReader(int _sockfd) : sockfd(_sockfd), cur(0) {}
 
     ~SocketReader() = default;
 
+    /*
+     * ReadLine reads a line into the given buffer.
+     * If no newline character received, read max-1 character with null terminator appended.
+     * @param isPrefix  if true, indicates that no newline character exists, can be nullptr.
+     * @param buf       char buffer to read  .
+     * @param max       the maximum number of characters to read.
+     * @return the length of the line, if error occurred return -1.
+     */
     ssize_t ReadLine(bool* isPrefix, void* buf, ssize_t max);
 
+    /*
+     * Reset redirects the reader to a new socket.
+     * will clean all static states.
+     * @param _sockdf   new socket to read.
+     */
     inline void Reset(int _sockfd) {
         sockfd = _sockfd;
         cur = 0;
