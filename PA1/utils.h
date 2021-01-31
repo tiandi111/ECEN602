@@ -8,6 +8,7 @@
 #include <sys/types.h>
 
 #include <cstddef>
+#include <cerrno>
 
 namespace echo {
     /*
@@ -16,9 +17,16 @@ namespace echo {
      * @param sockfd    target socket.
      * @param buf       char buffer.
      * @param len       length to write.
-     * @return the length of characters written, -1 if error occurred.
+     * @return upon successful write, the length of characters is returned; otherwise, return -1.
      */
     ssize_t WriteSocket(int sockfd, const void *buf, int len);
+
+    /*
+     * CloseSocket closes the given socket.
+     * @param sockfd    socket to close.
+     * @param upon successful close, return 0; otherwise, return -1.
+     */
+    int CloseSocket(int sockfd);
 } // namespace echo
 
 #endif //PROJ1_UTILS_H

@@ -48,6 +48,9 @@ void echo::EchoClient::Start() {
                 std::cerr<< "write line failed"<< std::endl;
             }
 
+        } else if (feof(stdin)) { // eof received, close the socket
+            echo::CloseSocket(sockfd);
+            break;
         } else {
             std::cerr<< "get line failed"<< std::endl;
         }

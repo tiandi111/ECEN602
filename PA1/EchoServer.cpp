@@ -5,9 +5,14 @@
 #include "EchoServer.h"
 
 #include <stdexcept>
+#include <csignal>
 
 #include "Reader.h"
 #include "utils.h"
+
+void ChildProcessHandler(int sig) {
+    wait(NULL);
+}
 
 void echo::EchoServer::Start() {
     //
@@ -49,10 +54,16 @@ void echo::EchoServer::Start() {
                     } else {
                         printf("sent: %s\n", std::string(buf, recv).c_str());
                     }
+
+                } else if (reader.SocketClosed()) { // upon socket close, child process exit
+                    exit(0);
                 } else {
                     std::cerr<< "read line failed: "<< recv << std::endl;
                 }
             }
         }
+
+        signal(SIGCHLD, ChildProcessHandler); // handle zombie child process
+
     }
 }

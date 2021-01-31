@@ -5,6 +5,7 @@
 #include "utils.h"
 
 #include <sys/socket.h>
+#include <unistd.h>
 
 #include <cerrno>
 #include <cstring>
@@ -20,4 +21,15 @@ ssize_t echo::WriteSocket(int sockfd, const void * buf, int len) {
     } while (sent == -1 && errno == EINTR);
 
     return total;
+}
+
+int echo::CloseSocket(int sockfd) {
+    int err;
+    do {
+
+        err = close(sockfd);
+
+    } while (err == -1 && errno ==EINTR);
+
+    return err;
 }
