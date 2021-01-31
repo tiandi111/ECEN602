@@ -13,7 +13,7 @@ void echo::EchoServer::Start() {
     //
     sockfd = socket(AF_INET, SOCK_STREAM, getprotobyname("tcp")->p_proto);
     if(sockfd < 0) {
-        throw std::runtime_error("create socket failed");
+        throw std::runtime_error(std::string("create socket failed: ") + std::strerror(errno));
     }
 
     sockAddr.sin_family=AF_INET;
@@ -21,11 +21,11 @@ void echo::EchoServer::Start() {
     sockAddr.sin_addr.s_addr=inet_addr(addr.c_str());
 
     if(bind(sockfd, (struct sockaddr*)&sockAddr, sizeof(sockAddr)) < 0) {
-        throw std::runtime_error("bind socket failed");
+        throw std::runtime_error(std::string("bind socket failed: ") + std::strerror(errno));
     }
 
     if(listen(sockfd, backlog) < 0) {
-        throw std::runtime_error("listen socket failed");
+        throw std::runtime_error(std::string("listen socket failed: ") + std::strerror(errno));
     }
 
     // start serving clients
@@ -33,7 +33,7 @@ void echo::EchoServer::Start() {
         int sockAddrLen = sizeof(sockAddr);
         int newSockfd = accept(sockfd, (sockaddr*)&sockAddr, (socklen_t*)&sockAddrLen);
         if (newSockfd < 0) {
-            throw std::runtime_error("accept failed");
+            throw std::runtime_error(std::string("accept failed: ") + std::strerror(errno));
         }
 
         if (fork() == 0) {

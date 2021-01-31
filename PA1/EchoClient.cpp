@@ -16,15 +16,15 @@ void echo::EchoClient::Start() {
     // connect to the server
     sockfd = socket(AF_INET, SOCK_STREAM, getprotobyname("tcp")->p_proto);
     if (sockfd < 0) {
-        throw std::runtime_error("create socket failed");
+        throw std::runtime_error(std::string("create socket failed: ") + std::strerror(errno));
     }
 
     sockAddr.sin_family=AF_INET;
     sockAddr.sin_port=port;
     sockAddr.sin_addr.s_addr=inet_addr(addr.c_str());
 
-    if (connect(sockfd, (sockaddr*)&sockAddr, sizeof(sockAddr))<0) {
-        throw std::runtime_error("connect server failed");
+    if (connect(sockfd, (sockaddr*)&sockAddr, sizeof(sockAddr)) < 0) {
+        throw std::runtime_error(std::string("connect server failed: ") + std::strerror(errno));
     }
 
     ssize_t recv;

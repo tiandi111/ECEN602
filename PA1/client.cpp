@@ -11,12 +11,12 @@ int main(int argc, char** argv) {
     try {
         port = std::stoi(argv[2]);
     } catch (std::exception const& err) {
-        std::cerr<< "parse port failed: " << err.what() <<std::endl;
+        std::cerr<< err.what() <<std::endl;
     }
     try {
         echo::EchoClient client = echo::EchoClient(port, argv[1]);
         client.Start();
     } catch (std::exception const& err) {
-        std::cerr<< "start client failed: " << err.what() <<std::endl;
+        std::cerr<< err.what() <<std::endl;
     }
 }
