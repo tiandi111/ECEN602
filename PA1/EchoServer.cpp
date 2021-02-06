@@ -44,6 +44,8 @@ void echo::EchoServer::Start() {
         throw std::runtime_error(std::string("listen socket failed: ") + std::strerror(errno));
     }
 
+    signal(SIGCHLD, ChildProcessHandler); // handle zombie child process
+
     // start serving clients
     while (true) {
         int sockAddrLen = sizeof(sockAddr);
@@ -67,14 +69,12 @@ void echo::EchoServer::Start() {
                     }
 
                 } else if (iosocket.SocketClosed()) { // upon socket close, child process exit
+                    std::cout << "Child process exits" << std::endl;
                     exit(0);
                 } else {
                     std::cerr<< "read line failed: "<< recv << std::endl;
                 }
             }
         }
-
-        signal(SIGCHLD, ChildProcessHandler); // handle zombie child process
-
     }
 }

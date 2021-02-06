@@ -19,12 +19,14 @@
 // Return value: The actual bytes read and put in the buffer (include '\0')
 ssize_t echo::IOSocket::ReadLine(bool* isPrefix, void* dst, ssize_t max) {
     ssize_t readl;
-    ssize_t totalCopied = 0, maxLen = max-1;
+    ssize_t totalCopied = 0, maxLen = max;
     void* dstCur = dst;
     int retry = 0;
 
     do {
-        while ((readl = recv(sockfd, buf + cur, BUFFER_SIZE - cur, 0)) > 0) {
+        while ((readl = recv(sockfd, buf + cur, std::min(BUFFER_SIZE - cur, std::max((ssize_t)1, maxLen-1)), 0)) > 0) {
+            // std::cout << "readl = " << readl << std::endl;
+
             retry = 0;
             ssize_t copied = 0, lineEnd = cur, readEnd = cur + readl;
 
@@ -34,23 +36,31 @@ ssize_t echo::IOSocket::ReadLine(bool* isPrefix, void* dst, ssize_t max) {
                 copied++;
             }
 
+            // std::cout << "readEnd = " << readEnd << ", cur = " << cur << ", copied = " << copied << ", lineEnd = " << lineEnd << std::endl;
+
             memcpy(dstCur, buf + cur, lineEnd - cur);
             totalCopied += copied;
             cur = lineEnd == BUFFER_SIZE ? 0 : lineEnd;
+
+            // std::cout << "totalCopied = " << totalCopied << std::endl;
+            // std::cout << "cur = " << cur << ", maxLen = " << maxLen << ", dstCur = " << dstCur << std::endl;
+
 
             // When lineEnd == readEnd, buf[readEnd] must not be a terminated charactor and there is at least one element space
             // left for '\0' in the buffer, continue the loop to read more data
             if (lineEnd != readEnd) {
                 if (isTerminated(lineEnd)) {
+                    // std::cout << "isTerminated(lineEnd): copied = " << copied << ", return " << totalCopied + 1 << std::endl;
                     if (isPrefix) { *isPrefix = false; }
-                    ((char *) dst)[copied] = '\0';
+                    ((char *) dstCur)[copied] = '\0';
                     return totalCopied + 1;
                 }
 
                 // The read data size exceeds the size of the destination buffer
                 if (copied == maxLen-1) {
+                    // std::cout << "copied == maxLen-1: maxLen-1 = " << maxLen-1 << ", return " << totalCopied + 1 << std::endl;
                     if (isPrefix) { *isPrefix = true; }
-                    ((char*)dst)[maxLen-1] = '\0';
+                    ((char*)dstCur)[maxLen-1] = '\0';
                     return totalCopied+1;
                 }
 
@@ -59,6 +69,8 @@ ssize_t echo::IOSocket::ReadLine(bool* isPrefix, void* dst, ssize_t max) {
 
             dstCur = (char *) dst + copied;
             maxLen -= copied;
+
+            // std::cout << "maxLen = " << maxLen << ", dstCur = " << dstCur << std::endl;
         }
     } while (readl == -1 && errno == EINTR && retry++ < MAX_RETRY);
 
@@ -67,6 +79,7 @@ ssize_t echo::IOSocket::ReadLine(bool* isPrefix, void* dst, ssize_t max) {
     if(readl == 0) closed = true;
 
     if (isPrefix) { *isPrefix = false; }
+    // std::cout << "Return " << totalCopied << std::endl;
     return totalCopied;
 }
 

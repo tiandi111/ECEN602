@@ -46,9 +46,14 @@ void echo::EchoClient::Start() {
         // get a line from stdin
         if (fgets(buf, BUFFER_SIZE, stdin) != NULL) {
 
+            // std::cout << "Buf content: " << buf << "length: " << strlen(buf) << std::endl;
+            int sendLen = strlen(buf);
+            // guarantee that the line ends with '\0' or '\n' or EOF
+            if(buf[sendLen-1] != '\n' && buf[sendLen-1] != '\0' && buf[sendLen-1] != EOF)
+                ++sendLen;
             // do echo once
             ssize_t total;
-            if((total = iosocket.Write(sockfd, buf, strlen(buf))) > 0) {
+            if((total = iosocket.Write(sockfd, buf, sendLen)) > 0) {
                 std::cerr<< "write: " << total <<std::endl;
                if ((recv = iosocket.ReadLine(nullptr, buf, BUFFER_SIZE)) > 0) {
                    std::cerr<< "recv: "<< std::string(buf, recv).c_str()<< "("<<recv<<")" <<std::endl;
@@ -60,6 +65,7 @@ void echo::EchoClient::Start() {
             }
 
         } else if (feof(stdin)) { // eof received, close the socket
+            std::cout<< "Get EOF"<< std::endl;
             echo::IOSocket::CloseSocket(sockfd);
             break;
         } else {
