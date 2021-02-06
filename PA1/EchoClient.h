@@ -22,10 +22,9 @@ namespace echo {
  */
 class EchoClient {
   public:
-    EchoClient(int _port, const std::string& _addr) : port(_port), addr(_addr){}
-    ~EchoClient() {
-        close(sockfd);
-    }
+    EchoClient(const std::string& _addr, uint16_t _port);
+    ~EchoClient();
+
     /*
      * start the client in blocking mode.
      */
