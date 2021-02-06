@@ -11,6 +11,7 @@
 
 #include "iosocket.h"
 
+#define CLI_BUFFER_SIZE 1024
 
 echo::EchoClient::EchoClient(const std::string &_addr, uint16_t _port) :
         port(_port), addr(_addr) {
@@ -39,12 +40,12 @@ echo::EchoClient::~EchoClient() {
 
 void echo::EchoClient::Start() {
     ssize_t recv;
-    char buf[BUFFER_SIZE];
+    char buf[CLI_BUFFER_SIZE];
     IOSocket iosocket(sockfd);
     // start echoing
     while (true) {
         // get a line from stdin
-        if (fgets(buf, BUFFER_SIZE, stdin) != NULL) {
+        if (fgets(buf, CLI_BUFFER_SIZE, stdin) != NULL) {
 
             // std::cout << "Buf content: " << buf << "length: " << strlen(buf) << std::endl;
             int sendLen = strlen(buf);
@@ -55,7 +56,7 @@ void echo::EchoClient::Start() {
             ssize_t total;
             if((total = iosocket.Write(sockfd, buf, sendLen)) > 0) {
                 std::cerr<< "write: " << total <<std::endl;
-               if ((recv = iosocket.ReadLine(nullptr, buf, BUFFER_SIZE)) > 0) {
+               if ((recv = iosocket.ReadLine(nullptr, buf, CLI_BUFFER_SIZE)) > 0) {
                    std::cerr<< "recv: "<< std::string(buf, recv).c_str()<< "("<<recv<<")" <<std::endl;
                } else {
                    std::cerr<< "read line failed: "<< recv << std::endl;

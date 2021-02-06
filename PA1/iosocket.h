@@ -10,7 +10,7 @@
 
 #include <cstdio>
 
-#define BUFFER_SIZE 8
+#define BUFFER_SIZE 2048
 
 
 namespace echo {
