@@ -21,10 +21,9 @@ namespace echo {
  */
 class EchoServer {
   public:
-    EchoServer(int _port, const std::string& _addr, int _backlog) : port(_port), addr(_addr), backlog(_backlog) {}
-    ~EchoServer() {
-        close(sockfd);
-    }
+    EchoServer(int _port, const std::string& _addr, int _backlog);
+    ~EchoServer();
+
     /*
      * start the server in blocking mode.
      */

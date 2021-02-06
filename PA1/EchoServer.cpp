@@ -7,28 +7,39 @@
 #include <stdexcept>
 #include <csignal>
 
-#include "Reader.h"
-#include "utils.h"
+#include "iosocket.h"
+
+echo::EchoServer::EchoServer(uint16_t _port, const std::string &_addr, int _backlog) :
+        port(_port), addr(_addr), backlog(_backlog) {
+
+    sockfd = socket(AF_INET, SOCK_STREAM, getprotobyname("tcp")->p_proto);
+    if (sockfd < 0) {
+        throw std::runtime_error("create socket failed");
+    }
+
+    bzero(&sockAddr, sizeof(sockAddr));
+    sockAddr.sin_family = AF_INET;
+    sockAddr.sin_port = htons(port);
+
+    if (inet_pton(AF_INET, _addr.c_str(), &sockAddr.sin_addr) <= 0) {
+        throw std::runtime_error("wrong IP address: " + _addr);
+    }
+
+    if (bind(sockfd, (struct sockaddr *) &sockAddr, sizeof(sockAddr)) < 0) {
+        throw std::runtime_error("bind socket failed");
+    }
+}
+
+echo::EchoServer::~EchoServer() {
+    close(sockfd);
+}
+
 
 void ChildProcessHandler(int sig) {
     wait(NULL);
 }
 
 void echo::EchoServer::Start() {
-    //
-    sockfd = socket(AF_INET, SOCK_STREAM, getprotobyname("tcp")->p_proto);
-    if(sockfd < 0) {
-        throw std::runtime_error(std::string("create socket failed: ") + std::strerror(errno));
-    }
-
-    sockAddr.sin_family=AF_INET;
-    sockAddr.sin_port=port;
-    sockAddr.sin_addr.s_addr=inet_addr(addr.c_str());
-
-    if(bind(sockfd, (struct sockaddr*)&sockAddr, sizeof(sockAddr)) < 0) {
-        throw std::runtime_error(std::string("bind socket failed: ") + std::strerror(errno));
-    }
-
     if(listen(sockfd, backlog) < 0) {
         throw std::runtime_error(std::string("listen socket failed: ") + std::strerror(errno));
     }
@@ -43,19 +54,19 @@ void echo::EchoServer::Start() {
 
         if (fork() == 0) {
             ssize_t recv;
-            SocketReader reader(newSockfd);
+            IOSocket iosocket(newSockfd);
             char buf[BUFFER_SIZE];
             while (true) {
-                if ((recv = reader.ReadLine(nullptr, buf, BUFFER_SIZE)) > 0) {
+                if ((recv = iosocket.ReadLine(nullptr, buf, BUFFER_SIZE)) > 0) {
                     printf("recv: %s(%zd)\n", std::string(buf, recv).c_str(), recv);
 
-                    if (echo::WriteSocket(newSockfd, buf, recv) < 0) {
+                    if (iosocket.Write(newSockfd, buf, recv) < 0) {
                         printf("echo back failed\n");
                     } else {
                         printf("sent: %s\n", std::string(buf, recv).c_str());
                     }
 
-                } else if (reader.SocketClosed()) { // upon socket close, child process exit
+                } else if (iosocket.SocketClosed()) { // upon socket close, child process exit
                     exit(0);
                 } else {
                     std::cerr<< "read line failed: "<< recv << std::endl;

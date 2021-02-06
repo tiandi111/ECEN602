@@ -9,27 +9,38 @@
 #include <cstring>
 #include <iostream>
 
-#include "Reader.h"
-#include "utils.h"
+#include "iosocket.h"
 
-void echo::EchoClient::Start() {
-    // connect to the server
-    sockfd = socket(AF_INET, SOCK_STREAM, getprotobyname("tcp")->p_proto);
+
+echo::EchoClient::EchoClient(const std::string &_addr, uint16_t _port) :
+        port(_port), addr(_addr) {
+
+    sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd < 0) {
         throw std::runtime_error(std::string("create socket failed: ") + std::strerror(errno));
     }
 
-    sockAddr.sin_family=AF_INET;
-    sockAddr.sin_port=port;
-    sockAddr.sin_addr.s_addr=inet_addr(addr.c_str());
+    bzero(&sockAddr, sizeof(sockAddr));
+    sockAddr.sin_family = AF_INET;
+    sockAddr.sin_port = htons(_port);
 
-    if (connect(sockfd, (sockaddr*)&sockAddr, sizeof(sockAddr)) < 0) {
-        throw std::runtime_error(std::string("connect server failed: ") + std::strerror(errno));
+    if (inet_pton(AF_INET, _addr.c_str(), &sockAddr.sin_addr) <= 0) {
+        throw std::runtime_error("Wrong IP address: " + _addr);
     }
 
+    if (connect(sockfd, (sockaddr *) &sockAddr, sizeof(sockAddr)) < 0) {
+        throw std::runtime_error(std::string("connect server failed: ") + std::strerror(errno));
+    }
+}
+
+echo::EchoClient::~EchoClient() {
+    close(sockfd);
+}
+
+void echo::EchoClient::Start() {
     ssize_t recv;
     char buf[BUFFER_SIZE];
-    SocketReader reader(sockfd);
+    IOSocket iosocket(sockfd);
     // start echoing
     while (true) {
         // get a line from stdin
@@ -37,9 +48,9 @@ void echo::EchoClient::Start() {
 
             // do echo once
             ssize_t total;
-            if((total = echo::WriteSocket(sockfd, buf, strlen(buf))) > 0) {
+            if((total = iosocket.Write(sockfd, buf, strlen(buf))) > 0) {
                 std::cerr<< "write: " << total <<std::endl;
-               if ((recv = reader.ReadLine(nullptr, buf, BUFFER_SIZE)) > 0) {
+               if ((recv = iosocket.ReadLine(nullptr, buf, BUFFER_SIZE)) > 0) {
                    std::cerr<< "recv: "<< std::string(buf, recv).c_str()<< "("<<recv<<")" <<std::endl;
                } else {
                    std::cerr<< "read line failed: "<< recv << std::endl;
