@@ -95,3 +95,14 @@ ssize_t echo::IOSocket::Write(int sockfd, const void *buf, int len) {
 
     return total;
 }
+
+int echo::IOSocket::CloseSocket(int sockfd) {
+    int err;
+    do {
+
+        err = close(sockfd);
+
+    } while (err == -1 && errno ==EINTR);
+
+    return err;
+}

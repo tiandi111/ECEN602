@@ -60,7 +60,7 @@ void echo::EchoClient::Start() {
             }
 
         } else if (feof(stdin)) { // eof received, close the socket
-            echo::CloseSocket(sockfd);
+            echo::IOSocket::CloseSocket(sockfd);
             break;
         } else {
             std::cerr<< "get line failed"<< std::endl;

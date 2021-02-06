@@ -42,6 +42,8 @@ class IOSocket {
         closed = false;
     }
 
+    static int CloseSocket(int sockfd);
+
   private:
     inline bool isTerminated(ssize_t idx) {
         return buf[idx] == '\n' || buf[idx] == '\0' || buf[idx] == EOF;

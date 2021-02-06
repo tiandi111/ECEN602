@@ -14,7 +14,7 @@ int main(int argc, char** argv) {
         std::cerr<< err.what() <<std::endl;
     }
     try {
-        echo::EchoClient client = echo::EchoClient(port, argv[1]);
+        echo::EchoClient client = echo::EchoClient(argv[1], port);
         client.Start();
     } catch (std::exception const& err) {
         std::cerr<< err.what() <<std::endl;

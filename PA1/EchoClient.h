@@ -22,7 +22,7 @@ namespace echo {
  */
 class EchoClient {
   public:
-    EchoClient(int _port, const std::string& _addr);
+    EchoClient(const std::string& _addr, uint16_t _port);
     ~EchoClient();
 
     /*

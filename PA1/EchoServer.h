@@ -21,7 +21,7 @@ namespace echo {
  */
 class EchoServer {
   public:
-    EchoServer(int _port, const std::string& _addr, int _backlog);
+    EchoServer(uint16_t _port, const std::string& _addr, int _backlog);
     ~EchoServer();
 
     /*
