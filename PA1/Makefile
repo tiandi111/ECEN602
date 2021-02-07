@@ -1,4 +1,5 @@
 # Use g++ as the compiler
+#CXX = g++-10 # local debugging option
 CXX = g++
 
 # Set compiler flags

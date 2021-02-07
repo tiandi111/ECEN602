@@ -6,6 +6,7 @@
 
 #include <stdexcept>
 #include <csignal>
+#include <cstring>
 
 #include "iosocket.h"
 
