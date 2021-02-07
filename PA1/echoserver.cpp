@@ -4,6 +4,8 @@
 
 #include "echoserver.h"
 
+#include <sys/wait.h>
+
 #include <stdexcept>
 #include <csignal>
 #include <cstring>
