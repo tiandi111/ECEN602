@@ -1,6 +1,7 @@
 cmake-build-debug
 ../.idea
 output
+bin
 CMakeCache.txt
 cmake_install.cmake
 CMakeFiles

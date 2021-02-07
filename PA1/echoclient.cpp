@@ -2,7 +2,7 @@
 // Created by 田地 on 2021/1/23.
 //
 
-#include "EchoClient.h"
+#include "echoclient.h"
 
 #include <stdio.h>
 

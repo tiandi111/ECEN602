@@ -1,4 +1,4 @@
-#include "EchoClient.h"
+#include "echoclient.h"
 
 #include <iostream>
 

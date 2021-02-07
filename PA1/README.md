@@ -1,0 +1,96 @@
+SPRING2021_ECEN602_
+---
+
+### Install and Usage
+First, cd to the project root path:
+```
+cd /project/root/path/
+```
+Second, install the application:
+```
+sh ./install.sh
+```
+To start echo server, run:
+```
+./bin/server <PORT> # e.g, ./bin/server 8080 
+```
+To start echo client, run:
+```
+./bin/client <IPAddr> <PORT> # e.g, ./bin/client 0.0.0.0 8080 
+```
+
+### Design and Architecture
+
+---
+#### Design goals
+This project aims to implement the Echo Network Protocol which consists of three major components:
+- Server
+- Client
+- Socket I/O infrastructure
+
+The Socket I/O infrastructure can be shared by both server-side and client-side.
+
+--- 
+#### Architecture
+We find that by following the object-oriented design pattern, it is easy to develop and maintain the three major
+components while reuse the socket I/O infrastructure. We created the following classes:
+- EchoServer
+- EchoClient
+- IOSocket
+
+The system run as following:
+```
+ +----------+         +----------+ ——> +----------+
+ |EchoServer|         |EchoClient|  5. |   stdin  |    
+ +----------+         +----------+ <—— +----------+
+    Λ   Λ               Λ    Λ 
+    | 2.|             3.|    |
+    |   V               V    |
+ 1. |    +--------------+    | 4.
+    |    |   IOSocket   |    |
+    |    +--------------+    |
+    |        |  6.  Λ        |
+    V        V      |        V
+    +------------------------+
+    |   socket system call   |
+    +------------------------+
+```
+Explanation of the indexed arrows:
+- Arrow 1
+
+    The EchoServer creates, binds, listens and accepts sockets by calling system calls directly. 
+    
+- Arrow 2
+    
+    The EchoServer read a line and echo it back through class IOSocket's Readline and Write method.
+  
+- Arrow 3
+
+    The EchoClient create and connect socket by calling system calls directly.
+
+- Arrow 4
+
+    The EchoClient send a line and received the echoed lines through class IOSocket's Readline and Write method.
+    
+- Arrow 5
+
+    The EchoClient read lines from stdin and print out the lines echoed back from EchoServer.  
+    
+- Arrow 6
+
+    The IOSocket send and received bytes stream from sockets by calling socket system calls.
+    It then processes received characters into lines and write them into the given buffers.
+
+### Contribution
+- Di Tian:
+    - Server and client code
+    - Makefile and install script
+    - README
+    
+- Junjie WANG:
+    - Socket IO functions
+    - Refactor code structures
+    - Unit tests
+    - Report
+    
+
