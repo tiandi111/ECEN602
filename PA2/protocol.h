@@ -24,11 +24,11 @@ class Attribute {
     /// Attribute type enum
     enum Type {
         ST = 0,
-        Reason,
-        Username,
-        ClientCount,
-        Message,
-        END,
+        Reason = 1,
+        Username = 2,
+        ClientCount = 3,
+        Message = 4,
+        END = 5,
     };
 
     /**
@@ -194,13 +194,13 @@ class Message {
     enum Type {
         ST = 0,
         JOIN = 2,
-        FWD,
-        SEND,
-        NAK,
-        OFFLINE,
-        ACK,
-        ONLINE,
-        END,
+        FWD = 3,
+        SEND = 4,
+        NAK = 5,
+        OFFLINE = 6,
+        ACK = 7,
+        ONLINE = 8,
+        END = 9,
     };
 
     typedef std::vector<Attribute> AttrList;
