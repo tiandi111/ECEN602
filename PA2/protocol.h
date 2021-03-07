@@ -196,10 +196,14 @@ class Message {
         JOIN = 2,
         FWD,
         SEND,
+        NAK,
+        OFFLINE,
+        ACK,
+        ONLINE,
         END,
     };
 
-    typedef std::unordered_map<uint16_t, Attribute> AttrMap;
+    typedef std::vector<Attribute> AttrList;
 
     /**
      * default constructor.
@@ -212,7 +216,7 @@ class Message {
      * @param ver protocol version.
      * @param attrs message attribute map.
      */
-    Message(Type type, uint16_t ver, AttrMap&& attrs);
+    Message(Type type, uint16_t ver, AttrList&& attrs);
 
     /**
      * construct from binary data.
@@ -294,10 +298,10 @@ class Message {
     uint32_t GetLen() const;
 
     /**
-     * return message attribute map.
-     * @return attrMap.
+     * return message attribute list.
+     * @return attrList.
      */
-    const AttrMap& GetAttrMap() const;
+    const AttrList& GetAttrList() const;
 
     /**
      * return message total size
@@ -306,11 +310,11 @@ class Message {
     uint32_t Size() const;
 
     /**
-     * set an attribute to attribute map.
-     * if the attribute type already exits, replace it with the given attribute.
+     * Add an attribute to attribute list.
+     *
      * @return message total size.
      */
-    void SetAttr(Attribute attr);
+    void AddAttr(Attribute attr);
 
     /**
      * return if `this` equals to `other`.
@@ -324,7 +328,7 @@ class Message {
     uint16_t ver;
     uint16_t len;
     // attribute map, key is attribute type and value is attribute itself
-    AttrMap attrMap;
+    AttrList attrList;
 };
 
 /**
@@ -360,6 +364,14 @@ Message NewFWDMessage(const std::string& username, const std::string& message);
  * @relatesalso Message.
  */
 Message NewSendMessage(const std::string& payload);
+
+Message NewACKMessage(const std::vector<std::string> usernames);
+
+Message NewNAKMessage(const std::string& reason);
+
+Message NewOfflineMessage(const std::string& username);
+
+Message NewOnlineMessage(const std::string& username);
 
 /**
  * read a message from file descriptor
