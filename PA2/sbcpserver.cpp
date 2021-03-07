@@ -1,185 +1,146 @@
 //
-// Created by 田地 on 2021/2/28.
+// Created by Junjie Wang on 2021-03-06.
 //
 
-#include <string>
-#include <iostream>
-#include <unordered_map>
+#include <arpa/inet.h>
+#include <netdb.h>
+#include <sys/types.h>
 #include <sys/socket.h>
-#include "io.h"
+#include <unistd.h>
+
+#include <iostream>
+#include <stdexcept>
+#include <string>
+
 #include "sbcpserver.h"
-#include "protocol.h"
 
-SBCP::Client::Client(int _socket) : socket(_socket), state(INIT) {}
+namespace SBCP {
 
-void SBCP::Client::Join(const std::string& _username) {
-    state = JOINED;
-    username = _username;
-}
-
-void SBCP::Client::Offline() {
-    state = OFFLINE;
-}
-
-void SBCP::Client::Invalid() {
-    state = INVALID;
-}
-
-bool SBCP::Client::IsReady() {
-    return state > INIT && state < OFFLINE;
-}
-
-bool SBCP::Client::IsOffline() {
-    return state == OFFLINE;
-}
-
-bool SBCP::Client::IsInvalid() {
-    return state == INVALID;
-}
-
-SBCP::SBCPServer::SBCPServer(uint16_t _port, const std::string &_addr, int _backlog) :
-    port(_port), addr(_addr), backlog(_backlog) {}
-
-void SBCP::SBCPServer::Init() {
-    sockfd = socket(AF_INET, SOCK_STREAM, getprotobyname("tcp")->p_proto);
-    if (sockfd < 0) {
-        throw std::runtime_error(std::string("socket: ") + std::strerror(errno));
+    SBCPConn::SBCPConn(int _sockfd, uint16_t _timeout, uint16_t _bufSize) : sockfd(_sockfd), timeout(_timeout), bufSize(_bufSize) {
+        rbuf = new char[_bufSize];
+        wbuf = new char[_bufSize];
     }
 
-    bzero(&sockAddr, sizeof(sockAddr));
-    sockAddr.sin_family = AF_INET;
-    sockAddr.sin_port = htons(port);
-
-    if (inet_pton(AF_INET, addr.c_str(), &sockAddr.sin_addr) <= 0) {
-        throw std::runtime_error("wrong IP address: " + addr);
+    SBCPConn::~SBCPConn() {
+        delete[] rbuf;
+        delete[] wbuf;
     }
 
-    if (bind(sockfd, (struct sockaddr *) &sockAddr, sizeof(sockAddr)) < 0) {
-        throw std::runtime_error(std::string("bind: ") + std::strerror(errno));
+    Message SBCPConn::ReadSBCPMsg() {
+        int lenRead = read(sockfd, rbuf, bufSize);
+        Message msg;
+
+        if (lenRead == 0) {
+            closed = true;
+            return msg;
+        }
+
+        if (lenRead < MSG_HEADER_SIZE) {
+            throw std::runtime_error("Incomplete SBCP message: " + std::string((char *)rbuf, lenRead));
+        }
+
+        msg.ReadHeader(rbuf);
+
+        if (MSG_HEADER_SIZE + msg.GetLen() < lenRead) {
+            throw std::runtime_error("Incomplete SBCP message: " + std::string((char *)rbuf, lenRead));
+        }
+
+        msg.ReadPayload((char *)rbuf + MSG_HEADER_SIZE);
+
+        return msg;
     }
 
-    if (listen(sockfd, backlog) < 0) {
-        throw std::runtime_error(std::string("listen: ") + std::strerror(errno));
-    }
+    void SBCPConn::WriteSBCPMsg(Message msg) {
+        if (MSG_HEADER_SIZE + msg.GetLen() > bufSize) {
+            throw std::runtime_error("SBCP message too long! Max length: " + std::to_string(bufSize));
+        }
 
-    maxFD = sockfd;
-}
+        msg.WriteBytes(wbuf);
 
-void SBCP::SBCPServer::AcceptClient() {
-    if (FD_ISSET(sockfd, &readfds)) {
-        int sockAddrLen = sizeof(sockAddr);
-        int newSockfd = accept(sockfd, (sockaddr *) &sockAddr, (socklen_t *) &sockAddrLen);
-        if (newSockfd <= 0) {
-            throw std::runtime_error(std::string("accept: ") + std::strerror(errno));
-        } else {
-            if (clients.size() >= MAX_CLT_NUM) {
-                close(newSockfd);
-            } else {
-                clients.emplace_back(Client(newSockfd));
-            }
+        int len = write(sockfd, wbuf, bufSize);
+        if (len < MSG_HEADER_SIZE + msg.GetLen()) {
+            throw std::runtime_error("Write incomplete SBCP message");
         }
     }
-}
 
-void SBCP::SBCPServer::Broadcast(Message msg, int src) {
-    char buf[msg.Size()];
-    msg.WriteBytes(buf);
-    for (auto& client : clients) {
-        if (!client.IsReady() || client.socket == src) {
-            continue;
-        }
-        if((SBCP::writelen(client.socket, buf, msg.Size()) <= 0)) {
-            throw std::runtime_error(std::string("writelen: ") + std::strerror(errno));
-        }
+    bool SBCPConn::isClosed() {
+        return closed;
     }
-}
 
 
-void SBCP::SBCPServer::HandleClients() {
-    for (auto it = clients.begin(); it != clients.end(); it++) {
-        Client& clt = *it;
-        if (FD_ISSET(clt.socket, &readfds)) {
-            Message msg;
-            int code = SBCP::ReadMessage(msg, clt.socket);
-            if (code == 0) {
-                if (clt.state > Client::INIT) {
-                    clt.Offline();
-                }
-                continue;
+    SBCPServer::SBCPServer(const std::string &_addr, uint16_t _port, int _maxclients) : port(_port), addr(_addr), maxclients(_maxclients) {}
+
+    void SBCPServer::Start() {
+        // Ceate socket for listen
+        listenSockFD = socket(AF_INET, SOCK_STREAM, getprotobyname("tcp")->p_proto);
+        if (listenSockFD < 0) {
+            throw std::runtime_error("create socket failed");
+        }
+
+        sockaddr_in sockAddr;
+        bzero(&sockAddr, sizeof(sockAddr));
+        sockAddr.sin_family = AF_INET;
+        sockAddr.sin_port = htons(port);
+
+        if (inet_pton(AF_INET, addr.c_str(), &sockAddr.sin_addr) <= 0) {
+            throw std::runtime_error("wrong IP address: " + addr);
+        }
+
+        // Bind
+        if (bind(listenSockFD, (struct sockaddr *) &sockAddr, sizeof(sockAddr)) < 0) {
+            throw std::runtime_error("bind socket failed");
+        }
+
+        // Listen
+        if(listen(listenSockFD, backlog) < 0) {
+            throw std::runtime_error(std::string("listen socket failed: ") + std::strerror(errno));
+        }
+
+        std::cout << "Server started. Listening on " << addr << ":" << port << " ..." << std::endl;
+
+        // Handle zombie child processes
+        //signal(SIGCHLD, ChildProcessHandler);
+
+
+        // Start serving clients
+        while (true) {
+
+
+
+
+
+            int sockAddrLen = sizeof(sockAddr);
+            int newSockfd = accept(listenSockFD, (sockaddr *) &sockAddr, (socklen_t * ) & sockAddrLen);
+            if (newSockfd < 0) {
+                throw std::runtime_error(std::string("accept failed: ") + std::strerror(errno));
             }
-            if (code < 0 ) {
-                throw std::runtime_error(std::string("ReadMessage: " + std::to_string(msg.GetType())));
-            }
-            switch (msg.GetType()) {
-                case Message::JOIN: {
-                    Attribute username = msg.GetAttrMap().at(Attribute::Username);
-                    if (usernameSet.end() != usernameSet.find(username.GetPayloadString())) {
-                        clt.Invalid();
-                        continue;
+
+            std::cout << "New connection established." << std::endl;
+
+
+//
+//            // Record new client in
+//            sockFDs.push_back(newSockfd);
+//
+//
+            if (fork() == 0) {
+                ssize_t recv;
+
+                char buf[1024];
+
+                while (true) {
+                    if ((recv = read(newSockfd, buf, 1024)) > 0) {
+                        printf("recv: %s(%zd)\n", std::string(buf, recv).c_str(), recv);
+
+                    } else if (recv == 0) { // upon socket close, child process exit
+                        std::cout << "Child process exits" << std::endl;
+                        exit(0);
+                    } else {
+                        std::cerr << "read failed: errno = " << errno << std::endl;
                     }
-                    usernameSet.emplace(username.GetPayloadString());
-                    clt.Join(username.GetPayloadString());
-                    Broadcast(NewFWDMessage(clt.username, "entered the chat room.\n"), clt.socket);
-                    break;
                 }
-                case Message::SEND: {
-                    Attribute data = msg.GetAttrMap().at(Attribute::Message);
-                    Broadcast(NewFWDMessage(clt.username, data.GetPayloadString()), clt.socket);
-                    std::cout<< clt.username << ": " << data.GetPayloadString() <<std::endl;
-                    break;
-                }
-                default:
-                    throw std::runtime_error(std::string("invalid message type: " + std::to_string(msg.GetType())));
             }
         }
-    }
-    for (auto it = clients.begin(); it != clients.end(); ) {
-        Client& clt = *it;
-        if (clt.IsOffline() || clt.IsInvalid()) {
-            clients.erase(it);
-            usernameSet.erase(clt.username);
-            if (clt.IsOffline()) {
-                Broadcast(NewFWDMessage(clt.username, "exited the chat room.\n"), clt.socket);
-            }
-            close(clt.socket);
-        } else {
-            it++;
-        }
-    }
-}
-
-void SBCP::SBCPServer::WaitEvent() {
-    FD_ZERO(&readfds);
-    FD_SET(sockfd, &readfds);
-    maxFD = sockfd;
-    for (auto& client : clients) {
-        FD_SET(client.socket, &readfds);
-        maxFD = std::max(maxFD, client.socket);
-    }
-    int ret = select(maxFD + 1, &readfds , NULL , NULL , NULL);
-    if (ret < 0) {
-        throw std::runtime_error(std::string("select: ") + std::strerror(errno));
-    }
-}
-
-void SBCP::SBCPServer::Start() {
-    Init();
-
-    while (true) {
-
-        try {
-            WaitEvent();
-
-            AcceptClient();
-
-            HandleClients();
-
-        } catch (const std::exception& e) {
-
-            std::cerr<< e.what() << std::endl;
-
-        }
 
     }
 }
-

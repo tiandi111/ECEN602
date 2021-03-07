@@ -1,24 +1,32 @@
 //
-// Created by 田地 on 2021/2/28.
+// Created by Junjie Wang on 2021-03-07.
 //
 
-#include <stdexcept>
-#include <string>
+
 #include <iostream>
+
 #include "sbcpserver.h"
 
+using namespace SBCP;
+using namespace std;
 
-int main(int argc, char** argv) {
-    if (argc <= 1) {
-        std::cerr<< "usage: server <PORT>" <<std::endl;
+int main(int argc, char **argv) {
+    if (argc < 4) {
+        cout << "Not enough arguments. Please specify IP, port, and maximum number of clients." << endl;
         return -1;
     }
-    try {
-        int port = std::stoi(argv[1]);
-        SBCP::SBCPServer server(port, "0.0.0.0", 10);
+
+    string ip = argv[1];
+    int port = stoi(argv[2]);
+    int maxClients = stoi(argv[3]);
+
+    SBCPServer server = SBCPServer(ip, port, maxClients);
+
+    try{
         server.Start();
-    } catch (std::exception const &err) {
-        std::cerr<< err.what() <<std::endl;
+    } catch (const std::exception& e) {
+        std::cerr << e.what() << std::endl;
     }
+
     return 0;
 }
