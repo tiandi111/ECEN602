@@ -1,6 +1,7 @@
+# CXX = g++-10
 CXX = g++
 
-CXXFLAGS = -std=c++0x
+CXXFLAGS = -std=c++11
 
 BIN_PATH = ./bin
 
@@ -20,7 +21,7 @@ test: $(TEST_OBJ)
 	$(CXX) $(CXXFLAGS) -o $(BIN_PATH)/test $(TEST_OBJ)
 
 $(CLIENT_OBJ): %.o: %.cpp
-$(SERVER_OBJ): %.o: %.cpp 
+$(SERVER_OBJ): %.o: %.cpp
 
 clean:
 	rm -rf $(SERVER_OBJ) $(CLIENT_OBJ) $(TEST_OBJ)

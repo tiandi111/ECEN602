@@ -10,12 +10,16 @@
 
 int main(int argc, char** argv) {
     if (argc <= 1) {
-        std::cerr<< "usage: server <PORT>" <<std::endl;
+        std::cerr<< "usage: server <PORT> <MaxClient=3>" <<std::endl;
         return -1;
     }
     try {
+        uint32_t maxClient = 3;
         int port = std::stoi(argv[1]);
-        SBCP::SBCPServer server(port, "0.0.0.0", 10);
+        if (argc > 2) {
+            maxClient = std::stoul(argv[2]);
+        }
+        SBCP::SBCPServer server(port, "0.0.0.0", maxClient);
         server.Start();
     } catch (std::exception const &err) {
         std::cerr<< err.what() <<std::endl;

@@ -9,7 +9,7 @@
 int main(int argc, char** argv) {
     if (argc < 4) {
         std::cerr<< "usage: client <USERNAME> <ADDR> <PORT>"<< std::endl;
-        return -1;
+        return 1;
     }
     try {
         int port = std::stoi(argv[3]);

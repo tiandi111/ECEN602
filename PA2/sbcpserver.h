@@ -96,7 +96,7 @@ class SBCPServer {
      * @param addr the server address.
      * @param backlog the number of backlog connection.
      */
-    SBCPServer(uint16_t port, const std::string& addr, int backlog);
+    SBCPServer(uint16_t port, const std::string& addr, uint32_t maxClient);
 
     /**
      * default destructor.
@@ -155,7 +155,7 @@ class SBCPServer {
   private:
     in_port_t port;
     std::string addr;
-    int backlog;
+    uint32_t maxClient;
     int sockfd;
     sockaddr_in sockAddr;
     fd_set readfds;

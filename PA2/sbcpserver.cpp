@@ -2,6 +2,7 @@
 // Created by 田地 on 2021/2/28.
 //
 
+#include <cstring>
 #include <string>
 #include <iostream>
 #include <unordered_map>
@@ -37,13 +38,13 @@ bool SBCP::Client::IsInvalid() {
     return state == INVALID;
 }
 
-SBCP::SBCPServer::SBCPServer(uint16_t _port, const std::string &_addr, int _backlog) :
-    port(_port), addr(_addr), backlog(_backlog) {}
+SBCP::SBCPServer::SBCPServer(uint16_t _port, const std::string &_addr, uint32_t _maxClient)
+: port(_port), addr(_addr), maxClient(_maxClient) {}
 
 void SBCP::SBCPServer::Init() {
     sockfd = socket(AF_INET, SOCK_STREAM, getprotobyname("tcp")->p_proto);
     if (sockfd < 0) {
-        throw std::runtime_error(std::string("socket: ") + std::strerror(errno));
+        throw std::runtime_error(std::string("socket: ") + strerror(errno));
     }
 
     bzero(&sockAddr, sizeof(sockAddr));
@@ -55,11 +56,11 @@ void SBCP::SBCPServer::Init() {
     }
 
     if (bind(sockfd, (struct sockaddr *) &sockAddr, sizeof(sockAddr)) < 0) {
-        throw std::runtime_error(std::string("bind: ") + std::strerror(errno));
+        throw std::runtime_error(std::string("bind: ") + strerror(errno));
     }
 
-    if (listen(sockfd, backlog) < 0) {
-        throw std::runtime_error(std::string("listen: ") + std::strerror(errno));
+    if (listen(sockfd, 10) < 0) {
+        throw std::runtime_error(std::string("listen: ") + strerror(errno));
     }
 
     maxFD = sockfd;
@@ -70,9 +71,9 @@ void SBCP::SBCPServer::AcceptClient() {
         int sockAddrLen = sizeof(sockAddr);
         int newSockfd = accept(sockfd, (sockaddr *) &sockAddr, (socklen_t *) &sockAddrLen);
         if (newSockfd <= 0) {
-            throw std::runtime_error(std::string("accept: ") + std::strerror(errno));
+            throw std::runtime_error(std::string("accept: ") + strerror(errno));
         } else {
-            if (clients.size() >= MAX_CLT_NUM) {
+            if (clients.size() >= maxClient) {
                 close(newSockfd);
             } else {
                 clients.emplace_back(Client(newSockfd));
@@ -89,7 +90,7 @@ void SBCP::SBCPServer::Broadcast(Message msg, int src) {
             continue;
         }
         if((SBCP::writelen(client.socket, buf, msg.Size()) <= 0)) {
-            throw std::runtime_error(std::string("writelen: ") + std::strerror(errno));
+            throw std::runtime_error(std::string("writelen: ") + strerror(errno));
         }
     }
 }
@@ -136,12 +137,12 @@ void SBCP::SBCPServer::HandleClients() {
     for (auto it = clients.begin(); it != clients.end(); ) {
         Client& clt = *it;
         if (clt.IsOffline() || clt.IsInvalid()) {
-            clients.erase(it);
-            usernameSet.erase(clt.username);
             if (clt.IsOffline()) {
                 Broadcast(NewFWDMessage(clt.username, "exited the chat room.\n"), clt.socket);
             }
             close(clt.socket);
+            clients.erase(it);
+            usernameSet.erase(clt.username);
         } else {
             it++;
         }
@@ -158,12 +159,14 @@ void SBCP::SBCPServer::WaitEvent() {
     }
     int ret = select(maxFD + 1, &readfds , NULL , NULL , NULL);
     if (ret < 0) {
-        throw std::runtime_error(std::string("select: ") + std::strerror(errno));
+        throw std::runtime_error(std::string("select: ") + strerror(errno));
     }
 }
 
 void SBCP::SBCPServer::Start() {
     Init();
+
+    std::cout<< "Server running on " << addr << ":" << port <<std::endl; std::cout.flush();
 
     while (true) {
 

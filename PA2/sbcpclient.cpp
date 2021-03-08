@@ -2,6 +2,7 @@
 // Created by 田地 on 2021/2/28.
 //
 
+#include <cstring>
 #include <string>
 #include <sys/socket.h>
 #include <unistd.h>
@@ -22,10 +23,9 @@ SBCP::SBCPClient::~SBCPClient() {
 }
 
 void SBCP::SBCPClient::Init() {
-    std::cout<< "Connecting to server..." <<std::endl;
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd < 0) {
-        throw std::runtime_error(std::string("socket: ") + std::strerror(errno));
+        throw std::runtime_error(std::string("socket: ") + strerror(errno));
     }
 
     bzero(&sockAddr, sizeof(sockAddr));
@@ -37,18 +37,17 @@ void SBCP::SBCPClient::Init() {
     }
 
     if (connect(sockfd, (sockaddr *) &sockAddr, sizeof(sockAddr)) < 0) {
-        throw std::runtime_error(std::string("connect: ") + std::strerror(errno));
+        throw std::runtime_error(std::string("connect: ") + strerror(errno));
     }
 
-    std::cout<< "Joining to the chat room..." <<std::endl;
     Message joinMsg = NewJoinMessage(username);
     char buf[joinMsg.Size()];
     joinMsg.WriteBytes(buf);
     if(send(sockfd, buf, joinMsg.Size(), 0) < 0) {
-        throw std::runtime_error(std::string("send: ") + std::strerror(errno));
+        throw std::runtime_error(std::string("send: ") + strerror(errno));
     }
 
-    std::cout<< "You're in chat room now!" <<std::endl;
+    std::cout<< "Connected to server " << addr << ":" << port <<std::endl;
 }
 
 int SBCP::SBCPClient::WaitEvent() {
@@ -57,16 +56,14 @@ int SBCP::SBCPClient::WaitEvent() {
     FD_SET(sockfd, &readfds);
     int ret = select(std::max(sockfd, STDIN_FILENO) + 1, &readfds , NULL , NULL , NULL);
     if (ret < 0) {
-        throw std::runtime_error(std::string("select: ") + std::strerror(errno));
+        throw std::runtime_error(std::string("select: ") + strerror(errno));
     }
     return ret;
 }
 
 void SBCP::SBCPClient::ForwardMessages() {
     char buf[CLT_BUFFER_SIZE];
-    if (FD_ISSET(STDIN_FILENO, &readfds) &&
-        fgets(buf, CLT_BUFFER_SIZE, stdin) != NULL /*&&
-        strlen(buf) > 0*/) {
+    if (FD_ISSET(STDIN_FILENO, &readfds) && fgets(buf, CLT_BUFFER_SIZE, stdin) != NULL) {
         Send(buf, strlen(buf));
     }
 }
@@ -80,7 +77,7 @@ void SBCP::SBCPClient::RecvMessages() {
             return;
         }
         if (code < 0 ) {
-            throw std::runtime_error(std::string("ReadMessage: ") + std::strerror(errno));
+            throw std::runtime_error(std::string("ReadMessage: ") + strerror(errno));
         }
         if (msg.GetType() == Message::FWD) {
             auto username = msg.GetAttrMap().at(Attribute::Username).GetPayloadString();
@@ -95,7 +92,7 @@ void SBCP::SBCPClient::Send(void* ptr, size_t len) {
     char buf[msg.Size()];
     msg.WriteBytes(buf);
     if (SBCP::writelen(sockfd, buf, msg.Size()) < 0) {
-        throw std::runtime_error(std::string("writelen: ") + std::strerror(errno));
+        throw std::runtime_error(std::string("writelen: ") + strerror(errno));
     }
 }
 
@@ -111,8 +108,7 @@ int SBCP::SBCPClient::Start() {
         std::cout<< "> "; std::cout.flush();
 
         try {
-            int i = WaitEvent();
-//            std::cout<< "WaitEvent" << i << std::endl;
+            WaitEvent();
 
             ForwardMessages();
 
@@ -120,7 +116,7 @@ int SBCP::SBCPClient::Start() {
 
             if (IsClosed()) {
                 std::cout<< "Connection broken, exit." <<std::endl;
-                return -1;
+                return 1;
             }
 
         } catch (const std::exception& e) {
