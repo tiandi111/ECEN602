@@ -8,6 +8,7 @@
 #include <iostream>
 #include <unordered_map>
 #include <vector>
+#include <arpa/inet.h>
 #include "protocol.h"
 #include "io.h"
 

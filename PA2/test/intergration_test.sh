@@ -38,15 +38,15 @@ mkfifo $out_dir/c1_in && sleep 10 > $out_dir/c1_in &
 mkfifo $out_dir/c2_in && sleep 10 > $out_dir/c2_in &
 
 # start sever
-gtimeout 10 $bin_path/server $svr_port > $out_dir/svr_out &
+timeout 10 $bin_path/server $svr_port > $out_dir/svr_out &
 sleep 1
 
 ## start 3 clients, sleep for clients to set up completely
-gtimeout 4s $bin_path/client 0 $svr_addr $svr_port >$out_dir/c0_out <$out_dir/c0_in &
+timeout 4s $bin_path/client 0 $svr_addr $svr_port >$out_dir/c0_out <$out_dir/c0_in &
 sleep 1
-gtimeout 4s $bin_path/client 1 $svr_addr $svr_port >$out_dir/c1_out <$out_dir/c1_in &
+timeout 4s $bin_path/client 1 $svr_addr $svr_port >$out_dir/c1_out <$out_dir/c1_in &
 sleep 1
-gtimeout 4s $bin_path/client 2 $svr_addr $svr_port >$out_dir/c2_out <$out_dir/c2_in &
+timeout 4s $bin_path/client 2 $svr_addr $svr_port >$out_dir/c2_out <$out_dir/c2_in &
 sleep 1
 
 ## feed input to clients
@@ -75,29 +75,30 @@ case1_exit_code=0
 case2_exit_code=0
 
 # start server
-gtimeout --preserve-status 8s $bin_path/server $svr_port &
+timeout 8s $bin_path/server $svr_port &
 sleep 0.5
 
 # joint the first client with name '0'
-gtimeout --preserve-status 2s $bin_path/client 0 $svr_addr $svr_port >/dev/null & c0_pid=$!
+timeout 2s $bin_path/client 0 $svr_addr $svr_port >/dev/null & c0_pid=$!
 sleep 0.5
 
 # joint the second client with name '0', expect to be rejected
-gtimeout --preserve-status 1s $bin_path/client 0 $svr_addr $svr_port >/dev/null
+timeout 1s $bin_path/client 0 $svr_addr $svr_port >/dev/null
 case1_exit_code=$?
 
 # wait the first two client with name '0' to exit
 wait $c0_pid
 
 # joint the third client with name '0', expect to be accpeted
-gtimeout --preserve-status 1s $bin_path/client 0 $svr_addr $svr_port >/dev/null
+timeout 1s $bin_path/client 0 $svr_addr $svr_port >/dev/null
 case2_exit_code=$?
 
 if [ $case1_exit_code -ne 1 ]; then
   echo '---' Client with duplicate username should be prohibited
   echo '---' Test 2: Duplicate username FAILED
   failed_any=1
-elif [ $case2_exit_code -ne 143 ]; then
+# exit with 124 means the process is terminated by timeout
+elif [ $case2_exit_code -ne 124 ]; then
   echo '---' Client username should be recycled
   echo '---' Test 2: Duplicate username FAILED
   failed_any=1
@@ -113,15 +114,15 @@ wait
 svr_port=8082
 
 # start server, set maximum number of client to be 1
-gtimeout --preserve-status 3s $bin_path/server $svr_port 1 &
+timeout 3s $bin_path/server $svr_port 1 &
 sleep 0.5
 
 # join the first client
-gtimeout --preserve-status 2s $bin_path/client 0 $svr_addr $svr_port >/dev/null &
+timeout 2s $bin_path/client 0 $svr_addr $svr_port >/dev/null &
 sleep 0.5
 
 # join the second client, expect to be rejected
-gtimeout --preserve-status 1s $bin_path/client 1 $svr_addr $svr_port >/dev/null
+timeout 1s $bin_path/client 1 $svr_addr $svr_port >/dev/null
 
 if [ $? -eq 1 ]; then
   echo '---' Test 3: Max Number of Clients PASS
