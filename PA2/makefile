@@ -26,7 +26,3 @@ $(SERVER_OBJ): %.o: %.cpp
 # Clean intermediate files
 clean:
 	rm -rf $(SERVER_OBJ) $(CLIENT_OBJ)
-
-# all: test.cpp message.h
-#	g++-10 test.cpp message.h -o test && ./test
-
