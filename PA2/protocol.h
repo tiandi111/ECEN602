@@ -365,12 +365,40 @@ Message NewFWDMessage(const std::string& username, const std::string& message);
  */
 Message NewSendMessage(const std::string& payload);
 
-Message NewACKMessage(const std::vector<std::string> usernames);
+/**
+ * return a new message with type ACK.
+ * @param usernames the list of user names.
+ * @return an ACK message.
+ *
+ * @relatesalso Message.
+ */
+Message NewACKMessage(const std::vector<std::string> &usernames);
 
+/**
+ * return a new message with type NAK.
+ * @param reason the reason attribute.
+ * @return a NAK message.
+ *
+ * @relatesalso Message.
+ */
 Message NewNAKMessage(const std::string& reason);
 
+/**
+ * return a new message with type OFFLINE.
+ * @param username the username attribute.
+ * @return a SEND message.
+ *
+ * @relatesalso Message.
+ */
 Message NewOfflineMessage(const std::string& username);
 
+/**
+ * return a new message with type ONLINE.
+ * @param username the username attribute.
+ * @return an ONLINE message.
+ *
+ * @relatesalso Message.
+ */
 Message NewOnlineMessage(const std::string& username);
 
 /**

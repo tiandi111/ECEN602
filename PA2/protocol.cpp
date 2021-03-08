@@ -65,7 +65,7 @@ uint32_t SBCP::Attribute::WriteBytes(void* dst) {
 
 uint32_t SBCP::Attribute::ReadHeader(void* buf) {
     type = Type(ntohs(*((uint16_t *) buf)));
-    if (IsValidType(type)) {
+    if (!IsValidType(type)) {
         throw std::runtime_error("invalid message header" + std::to_string(type));
     }
     len = ntohs(*((uint16_t *) buf + 1));
@@ -249,8 +249,10 @@ ssize_t SBCP::ReadMessage(Message& msg, int fd) {
     int readl = 0;
     char header[4];
 
-    if((readl = SBCP::readlen(fd, header, 4)) <= 0) {
-        return readl;
+    if((readl = SBCP::readlen(fd, header, 4)) < 0) {
+        throw std::runtime_error(std::string("[ReadMessage] Read wrong header"));
+    } else if (readl == 0) {
+        return 0;
     }
 
     msg.ReadHeader(header);
@@ -258,7 +260,9 @@ ssize_t SBCP::ReadMessage(Message& msg, int fd) {
     char* payload = new char [msg.GetLen()];
 
     if((readl = SBCP::readlen(fd, payload, msg.GetLen())) <= 0) {
-        return readl;
+        throw std::runtime_error(std::string("[ReadMessage] Read wrong payload"));
+    } else if (readl == 0) {
+        return 0;
     }
 
     msg.ReadPayload(payload);
@@ -281,7 +285,7 @@ SBCP::Message SBCP::NewOfflineMessage(const std::string &username) {
     return Message(Message::OFFLINE, PROTOCOL_VERSION, {Username});
 }
 
-SBCP::Message SBCP::NewACKMessage(const std::vector<std::string> usernames) {
+SBCP::Message SBCP::NewACKMessage(const std::vector<std::string> &usernames) {
     Attribute ClientCount(Attribute::ClientCount, std::to_string(usernames.size()));
     SBCP::Message::AttrList attrs;
 

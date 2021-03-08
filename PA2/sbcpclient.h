@@ -42,8 +42,9 @@ class SBCPClient {
 
     /**
      * initialize client resources and join the chat server.
+     * @return true if entering the chat room successfully. Otherwise, return false.
      */
-    void Init();
+    bool Init();
 
     /**
      * start client.

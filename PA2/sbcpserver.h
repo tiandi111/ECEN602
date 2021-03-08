@@ -7,7 +7,7 @@
 
 #include <sys/socket.h>
 
-#include <unordered_set>
+#include <list>
 
 #include "protocol.h"
 
@@ -16,7 +16,6 @@
 namespace SBCP {
 
     class SBCPConn {
-
     public:
         int sockfd;
         uint16_t timeout;
@@ -27,6 +26,7 @@ namespace SBCP {
         std::string username;
 
         SBCPConn(int _sockfd, uint16_t _timeout, uint16_t _bufSize);
+        SBCPConn(SBCPConn &&conn);
         ~SBCPConn();
 
         // Return the message if sccuess. If the message is not complete, it throws an exception.
@@ -36,22 +36,23 @@ namespace SBCP {
         void WriteSBCPMsg(Message msg);
 
         // To check if the connection is closed by the client
-        bool isClosed();
+        bool IsClosed();
     };
 
 
     class SBCPServer {
-
+    private:
         int listenSockFD;
         uint16_t port;
         std::string addr;
         int maxclients;
 
-        std::unordered_set<SBCPConn> conns;
+        std::list<SBCPConn> conns;
         fd_set readfds;
 
     public:
         SBCPServer(const std::string &_addr, uint16_t port, int _maxclients);
+
         void Start();
 
         // Get all user names
@@ -59,6 +60,12 @@ namespace SBCP {
 
         // Broadcast msg to all users except the one with the given name
         void Broadcast(std::string username, Message msg);
+
+        // Return the numebr of online users
+        int OnlineUsers();
+
+        // Return true if there is no same user name as the given one
+        bool CheckUsername(std::string username);
     };
 
 

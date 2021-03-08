@@ -21,9 +21,21 @@ namespace SBCP {
         wbuf = new char[_bufSize];
     }
 
+    SBCPConn::SBCPConn(SBCPConn &&conn) : username(std::move(conn.username)) {
+        sockfd = conn.sockfd;
+        timeout = conn.timeout;
+        rbuf = conn.rbuf;
+        wbuf = conn.wbuf;
+        bufSize = conn.bufSize;
+        closed = conn.closed;
+
+        conn.rbuf = nullptr;
+        conn.wbuf = nullptr;
+    }
+
     SBCPConn::~SBCPConn() {
-        delete[] rbuf;
-        delete[] wbuf;
+        if(rbuf) delete[] rbuf;
+        if(wbuf) delete[] wbuf;
     }
 
     // Return the message if sccuess. If the message is not complete, it throws an exception.
@@ -36,6 +48,9 @@ namespace SBCP {
         if (lenRead == 0) {
             closed = true;
             return msg;
+        }
+        if (lenRead < 0 ) {
+            throw std::runtime_error(std::string("[ReadSBCPMsg] Read failed: ") + std::strerror(errno));
         }
 
         if (lenRead < MSG_HEADER_SIZE) {
@@ -63,14 +78,14 @@ namespace SBCP {
 
         msg.WriteBytes(wbuf);
 
-        int len = write(sockfd, wbuf, bufSize);
+        int len = write(sockfd, wbuf, MSG_HEADER_SIZE + msg.GetLen());
         if (len < MSG_HEADER_SIZE + msg.GetLen()) {
             throw std::runtime_error("Write incomplete SBCP message");
         }
     }
 
     // To check if the connection is closed by the client
-    bool SBCPConn::isClosed() {
+    bool SBCPConn::IsClosed() {
         return closed;
     }
 
@@ -110,53 +125,71 @@ namespace SBCP {
         // Start serving clients
         while (true) {
 
+            int maxfd = listenSockFD;
             FD_ZERO(&readfds);
             FD_SET(listenSockFD, &readfds);
             for(auto &x : conns) {
+                if (x.sockfd > maxfd) maxfd = x.sockfd;
                 FD_SET(x.sockfd, &readfds);
             }
 
-            int ret = select(conns.size()+2, &readfds, nullptr, nullptr, nullptr);
+//            std::cout << "selecting ..." << std::endl; std::cout.flush();
+            int ret = select(maxfd + 1, &readfds, nullptr, nullptr, nullptr);
 
             if (ret < 0) {
                 throw std::runtime_error(std::string("select: ") + std::strerror(errno));
             } else if (ret == 0) {
-                std::cout << "select timeout." << std::endl;
+                std::cout << "select timeout." << std::endl; std::cout.flush();
                 continue;
             }
 
-            std::vector<std::unordered_set<SBCPConn>::iterator> closedConns;
+//            std::cout << "select ret = " << ret << std::endl; std::cout.flush();
+
+            std::vector<std::list<SBCPConn>::iterator> closedConns;
+            closedConns.clear();
 
             // Handle existing connections first
             for (auto it = conns.begin(); it != conns.end(); it++) {
                 SBCPConn &conn = *it;
                 if (FD_ISSET(conn.sockfd, &readfds)) {
+//                    std::cout << "Receiving message ... " << std::endl; std::cout.flush();
                     try {
                         Message msg = conn.ReadSBCPMsg();
 
-                        if (conn.isClosed()) {  // Notice other users
+//                        std::cout << "Recv message " << msg << std::endl; std::cout.flush();
+
+                        if (conn.IsClosed() && !conn.username.empty()) {  // Notice other users when an online user exits
                             closedConns.push_back(it);
                             Broadcast(conn.username, NewOfflineMessage(conn.username));  // Broadcase ONLINE message to all other users
+
+                            // Reset the username so that other clients can use it
+                            conn.username = "";
+
                             continue;
                         }
 
                         switch(msg.GetType()) {
-                            case Message::JOIN:
-                                if(conns.size() >= maxclients) {
-                                    conn.WriteSBCPMsg(NewNAKMessage("Full chatroom"))   // NAK
+                            case Message::JOIN: {
+                                std::string username = msg.GetAttrList()[0].GetPayloadString();
+                                if (this->OnlineUsers() >= maxclients) {
+                                    conn.WriteSBCPMsg(NewNAKMessage("Full chatroom"));   // NAK
+                                } else if (!this->CheckUsername(username)) {
+                                    conn.WriteSBCPMsg(NewNAKMessage("Duplicate user name"));   // NAK
                                 } else {
                                     conn.username = msg.GetAttrList()[0].GetPayloadString();    // Record username
                                     conn.WriteSBCPMsg(NewACKMessage(this->GetUsernames()));      // ACK
-                                    Broadcast(conn.username, NewOnlineMessage(conn.username));  // Broadcase ONLINE message to all other users
+                                    Broadcast(conn.username, NewOnlineMessage(
+                                            conn.username));  // Broadcase ONLINE message to all other users
                                 }
                                 break;
+                            }
                             case Message::SEND:
                                 Broadcast(conn.username, NewFWDMessage(conn.username, msg.GetAttrList()[0].GetPayloadString()));    // Broadcase FWD message to all other users
                                 break;
                         }
 
                     } catch (const std::exception& e) {
-                        std::cerr << e.what() << std::endl;
+                        std::cerr << e.what() << std::endl; std::cerr.flush();
                         continue;
                     }
                 }
@@ -164,11 +197,14 @@ namespace SBCP {
 
             // Release resources of offline users
             for (auto x : closedConns) {
+                std::cout << "Close connection" << std::endl; std::cout.flush();
                 conns.erase(x);
             }
 
             // Accept new connections
             if (FD_ISSET(listenSockFD, &readfds)) {
+                std::cout << "Accept new clients" << std::endl; std::cout.flush();
+
                 int sockAddrLen = sizeof(sockAddr);
                 int newSockfd = accept(listenSockFD, (sockaddr *) &sockAddr, (socklen_t *) &sockAddrLen);
                 if (newSockfd < 0) {
@@ -177,39 +213,9 @@ namespace SBCP {
                 std::cout << "New connection established." << std::endl;
 
                 // Record in conns
-                conns.insert(SBCPConn(newSockfd, 1000, CONN_BUF_SIZE));
+                conns.push_back(SBCPConn(newSockfd, 1000, CONN_BUF_SIZE));
             }
 
-
-
-
-
-
-
-
-
-//
-//            // Record new client in
-//            sockFDs.push_back(newSockfd);
-//
-//
-//            if (fork() == 0) {
-//                ssize_t recv;
-//
-//                char buf[1024];
-//
-//                while (true) {
-//                    if ((recv = read(newSockfd, buf, 1024)) > 0) {
-//                        printf("recv: %s(%zd)\n", std::string(buf, recv).c_str(), recv);
-//
-//                    } else if (recv == 0) { // upon socket close, child process exit
-//                        std::cout << "Child process exits" << std::endl;
-//                        exit(0);
-//                    } else {
-//                        std::cerr << "read failed: errno = " << errno << std::endl;
-//                    }
-//                }
-//            }
         }
 
     }
@@ -219,7 +225,8 @@ namespace SBCP {
         std::vector<std::string> ret;
 
         for (auto &conn : conns) {
-            ret.push_back(conn.username);
+            if (!conn.closed && !conn.username.empty())
+                ret.push_back(conn.username);
         }
 
         return ret;
@@ -227,9 +234,26 @@ namespace SBCP {
 
     // Broadcast msg to all users except the one with the given name
     void SBCPServer::Broadcast(std::string username, Message msg) {
-        for (auto &conn : conns) {
-            if (conn.username != username)
+        for (SBCPConn &conn : conns) {
+            if (!conn.closed && !conn.username.empty() && conn.username != username)
                 conn.WriteSBCPMsg(msg);
         }
+    }
+
+    int SBCPServer::OnlineUsers() {
+        int ret = 0;
+        for (auto &conn : conns) {
+            if (!conn.closed && conn.username != "")
+                ++ret;
+        }
+        return ret;
+    }
+
+    bool SBCPServer::CheckUsername(std::string username) {
+        for (auto &conn : conns) {
+            if (!conn.closed && conn.username == username)
+                return false;
+        }
+        return true;
     }
 }
