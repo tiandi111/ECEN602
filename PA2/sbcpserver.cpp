@@ -20,6 +20,7 @@ namespace SBCP {
     SBCPConn::SBCPConn(int _sockfd, uint16_t _timeout, uint16_t _bufSize) : sockfd(_sockfd), timeout(_timeout), bufSize(_bufSize) {
         rbuf = new char[_bufSize];
         wbuf = new char[_bufSize];
+        closed = 0;
     }
 
     SBCPConn::SBCPConn(SBCPConn &&conn) : username(std::move(conn.username)) {
@@ -46,15 +47,20 @@ namespace SBCP {
         int lenRead = read(sockfd, rbuf, bufSize);
         Message msg;
 
+//        std::cout << "[ReadSBCPMsg] lenRead = " << lenRead << std::endl; std::cout.flush();
+
         if (lenRead == 0) {
+//            std::cout << "[ReadSBCPMsg] closed " << std::endl; std::cout.flush();
             closed = true;
             return msg;
         }
         if (lenRead < 0 ) {
+            std::cout << "[ReadSBCPMsg] lenRead < 0" << std::endl; std::cout.flush();
             throw std::runtime_error(std::string("[ReadSBCPMsg] Read failed: ") + std::strerror(errno));
         }
 
         if (lenRead < MSG_HEADER_SIZE) {
+            std::cout << "[ReadSBCPMsg] Incomplete SBCP message: " + std::string((char *)rbuf, lenRead); std::cout.flush();
             throw std::runtime_error("Incomplete SBCP message: " + std::string((char *)rbuf, lenRead));
         }
 
@@ -149,7 +155,6 @@ namespace SBCP {
                 std::cout << "select timeout." << std::endl; std::cout.flush();
                 continue;
             }
-
 //            std::cout << "select ret = " << ret << std::endl; std::cout.flush();
 
             std::vector<std::list<SBCPConn>::iterator> closedConns;
@@ -165,13 +170,14 @@ namespace SBCP {
 
 //                        std::cout << "Recv message " << msg << std::endl; std::cout.flush();
 
-                        if (conn.IsClosed() && !conn.username.empty()) {  // Notice other users when an online user exits
+                        if (conn.IsClosed()) {
                             closedConns.push_back(it);
-                            Broadcast(conn.username, NewOfflineMessage(conn.username));  // Broadcase ONLINE message to all other users
+                            if(!conn.username.empty()) {  // Notice other users when an online user exits
+                                Broadcast(conn.username, NewOfflineMessage(conn.username));  // Broadcase ONLINE message to all other users
 
-                            // Reset the username so that other clients can use it
-                            conn.username = "";
-
+                                // Reset the username so that other clients can use it
+                                conn.username = "";
+                            }
                             continue;
                         }
 
