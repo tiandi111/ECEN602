@@ -9,7 +9,7 @@ SERVER_OBJ = server.o sbcpserver.o protocol.o io.o
 CLIENT_OBJ = client.o sbcpclient.o protocol.o io.o
 
 # Generate all targets
-all: server client $(SERVER_OBJ) $(CLIENT_OBJ) clean
+all: server client
 
 # Generate target: server
 server: $(SERVER_OBJ)
@@ -25,4 +25,4 @@ $(SERVER_OBJ): %.o: %.cpp
 
 # Clean intermediate files
 clean:
-	rm -rf $(SERVER_OBJ) $(CLIENT_OBJ)
+	rm -rf $(SERVER_OBJ) $(CLIENT_OBJ) server client
