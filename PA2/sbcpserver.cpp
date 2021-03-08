@@ -11,6 +11,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <string>
+#include <cstring>
 
 #include "sbcpserver.h"
 

@@ -5,6 +5,12 @@
 #ifndef PROJ1_PROTOCOL_H
 #define PROJ1_PROTOCOL_H
 
+#include <arpa/inet.h>
+#include <netdb.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <unistd.h>
+
 #include <string>
 #include <unordered_map>
 #include <vector>

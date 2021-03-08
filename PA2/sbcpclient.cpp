@@ -2,6 +2,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <cstring>
 #include "io.h"
 #include "sbcpclient.h"
 #include "protocol.h"
