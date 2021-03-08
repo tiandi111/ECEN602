@@ -49,7 +49,7 @@ This project aims to implement the Simple Broadcast Chat Protocol (SBCP) which c
 - Client
 - Protocol definition
 
-The Protocol definition can be shared by both server-side and client-side.
+The Protocol definition can be shared by both server-side and client-side. It supports 7 types of messages: JOIN, SEND, FWD, ACK, NAK, ONLINE, and OFFLINE.
 
 --- 
 #### Architecture
