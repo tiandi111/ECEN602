@@ -83,12 +83,12 @@ sleep $MSG_WAITING_TIME
 
 ### Kill the clients and the server
 echo "Kill client1, pid = $CLIENT1PID"
-kill $CLIENT1PID
+kill -9 $CLIENT1PID
 echo "Client1 exits"
 sleep $MSG_WAITING_TIME
 
 echo "Kill client2, pid = $CLIENT2PID"
-kill $CLIENT2PID
+kill -9 $CLIENT2PID
 echo "Client2 exits"
 sleep $MSG_WAITING_TIME
 

@@ -69,9 +69,11 @@ class SBCPClient {
      *
      * @throw std::runtime_error thrown if forward messages failed.
      *
+     * @return true if fgets gets no input. Otherwise, return false.
+     *
      * @note should call this function after `WaitEvent` returns.
      */
-    void ForwardMessages();
+    bool ForwardMessages();
 
     /**
      * receive and display a message from server if any.

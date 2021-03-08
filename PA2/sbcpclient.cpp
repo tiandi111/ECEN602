@@ -96,14 +96,19 @@ int SBCP::SBCPClient::WaitEvent() {
     return ret;
 }
 
-void SBCP::SBCPClient::ForwardMessages() {
+bool SBCP::SBCPClient::ForwardMessages() {
     char buf[CLT_BUFFER_SIZE];
-    if (FD_ISSET(STDIN_FILENO, &readfds) &&
-        fgets(buf, CLT_BUFFER_SIZE, stdin) != NULL /*&&
-        strlen(buf) > 0*/) {
-//        std::cout << "ForwardMessages" << std::endl; std::cout.flush();
-        Send(buf, strlen(buf));
+    if (FD_ISSET(STDIN_FILENO, &readfds)) {
+        if (fgets(buf, CLT_BUFFER_SIZE, stdin) != NULL) {
+//            std::cout << "ForwardMessages" << std::endl; std::cout.flush();
+            Send(buf, strlen(buf));
+            return false;
+        } else {
+            return true;
+        }
     }
+
+    return false;
 }
 
 void SBCP::SBCPClient::RecvMessages() {
@@ -155,17 +160,18 @@ int SBCP::SBCPClient::Start() {
         return -1;
     }
 
+    bool noInput = false;
 
     while (true) {
 
-        std::cout<< "> "; std::cout.flush();
+        if(!noInput)
+            std::cout<< "> "; std::cout.flush();
 
         try {
             int i = WaitEvent();
-            std::cout << std::endl; std::cout.flush();
-//            std::cout << "WaitEvent" << i << std::endl; std::cout.flush();
 
-            ForwardMessages();
+            if(!noInput) std::cout << std::endl; std::cout.flush();
+//            std::cout << "WaitEvent" << i << std::endl; std::cout.flush();
 
             RecvMessages();
 
@@ -173,6 +179,8 @@ int SBCP::SBCPClient::Start() {
                 std::cout<< "Connection broken, exit." <<std::endl;
                 return -1;
             }
+
+            noInput = ForwardMessages();
 
         } catch (const std::exception& e) {
 
