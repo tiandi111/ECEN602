@@ -8,7 +8,7 @@ FIFO0="$OUTPUT_DIR/fifo0"
 FIFO1="$OUTPUT_DIR/fifo1"
 FIFO2="$OUTPUT_DIR/fifo2"
 FIFO3="$OUTPUT_DIR/fifo3"
-START_WAITING_TIME=1.7s
+START_WAITING_TIME=2s
 MSG_WAITING_TIME=0.5s
 
 rm -r $OUTPUT_DIR
@@ -27,10 +27,10 @@ echo "Start testing:"
 # Scenario:
 #   Server starts
 #   Client 1 starts and send JOIN with username "user1"
-#   Client 2 starts and send JOIN with username "user2"
-#   Client 3 starts and send JOIN with username "user3"
 #   Client 1 send message "Hi, I'm user1"
+#   Client 2 starts and send JOIN with username "user2"
 #   Client 2 send message "Hello, I'm user2"
+#   Client 3 starts and send JOIN with username "user3"
 #   Client 3 send message "Howdy, I'm user3"
 #   Client 1 exits
 #   Client 2 exits
@@ -60,11 +60,18 @@ CLIENT1PID=$!
 echo "client1 pid = $CLIENT1PID"
 sleep $START_WAITING_TIME
 
+### Send messages
+echo "Hi, I'm user1" > $FIFO1
+sleep $MSG_WAITING_TIME
+
 echo "Start client2..."
 ./client $USERNAME2 $IP $PORT < $FIFO2 > $OUTPUT_DIR/${TESTCASE}_client2_output 2>&1 &
 CLIENT2PID=$!
 echo "client2 pid = $CLIENT2PID"
 sleep $START_WAITING_TIME
+
+echo "Hello, I'm user2" > $FIFO2
+sleep $MSG_WAITING_TIME
 
 echo "Start client3..."
 ./client $USERNAME3 $IP $PORT < $FIFO3 > $OUTPUT_DIR/${TESTCASE}_client3_output 2>&1 &
@@ -72,12 +79,6 @@ CLIENT3PID=$!
 echo "client3 pid = $CLIENT3PID"
 sleep $START_WAITING_TIME
 
-
-### Send messages
-echo "Hi, I'm user1" > $FIFO1
-sleep $MSG_WAITING_TIME
-echo "Hello, I'm user2" > $FIFO2
-sleep $MSG_WAITING_TIME
 echo "Howdy, I'm user3" > $FIFO3
 sleep $MSG_WAITING_TIME
 
