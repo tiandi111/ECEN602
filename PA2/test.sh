@@ -462,3 +462,7 @@ sleep $MSG_WAITING_TIME
 
 echo "================================ Testcase 5 ends ====================================================="
 
+
+rm $FIFO1
+rm $FIFO2
+rm $FIFO3
