@@ -107,6 +107,12 @@ namespace SBCP {
             throw std::runtime_error("wrong IP address: " + addr);
         }
 
+        // Reuse addr
+        int on = 1;
+        if(setsockopt(listenSockFD, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(int)) < 0) {
+            throw std::runtime_error("set socket option failed");
+        }
+
         // Bind
         if (bind(listenSockFD, (struct sockaddr *) &sockAddr, sizeof(sockAddr)) < 0) {
             throw std::runtime_error("bind socket failed");
