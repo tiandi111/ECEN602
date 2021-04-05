@@ -153,6 +153,5 @@ Explanation of the indexed arrows:
     The request sessions use sendto() and recvfrom() system calls to send and receive UDP packets.
 
 ### Contribution
-All by Di Tian.
-    
+Di Tian.
 
