@@ -18,7 +18,7 @@ To start TFTP server, run:
 To run tests:
 ```
 ./bin/test                   # unit test
-sh test/intergration_test.sh # integration test
+bash test/intergration_test.sh # integration test
 ```
 
 ### Compilation Options
