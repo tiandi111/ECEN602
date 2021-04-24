@@ -8,7 +8,7 @@
 #include <iostream>
 #include <string>
 
-#define LOG_LEVEL 4
+#define LOG_LEVEL 3
 
 #define TEMP_FAILURE_RETRY(expr)\
     ({  long int __result;\

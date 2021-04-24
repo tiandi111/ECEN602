@@ -5,16 +5,16 @@
 # ==================================
 cd "$(dirname "$0")"
 
-bin_path=../cmake-build-debug/output
+bin_path=../bin
 
 addr=0.0.0.0
 
 port=69
 
-log_file=1#server_log
+log_file=server_log
 
 # start server
-./$bin_path/server $port &>"$log_file" & svr_pid=$!
+./$bin_path/server $port  & svr_pid=$!
 
 # ==================================
 #       Test Helper Functions
@@ -24,10 +24,13 @@ log_file=1#server_log
 #   arg1: program return code
 #   arg2: test case name
 echo_test_res () {
+  RED='\033[0;31m'
+  GRN='\033[0;32m'
+  NC='\033[0m'
   if [ "$1" -eq 0 ] ; then
-    echo "$2 (PASS)"
+    echo -e "${GRN}$2 (PASS)${NC}"
   else
-    echo "$2 (FAILED)"
+    echo -e "${RED}$2 (FAILED)${NC}"
   fi
 }
 
@@ -92,13 +95,20 @@ temp_file_path=$(mktemp)
 temp_file_name=$(basename "$temp_file_path")
 
 dd if=/dev/urandom of="$temp_file_path" bs=4194304 count=1 &>/dev/null
-echo "get $temp_file_path" | tftp $addr $port &>/dev/null &
-echo "get $temp_file_path" | tftp $addr $port &>/dev/null &
-echo "get $temp_file_path" | tftp $addr $port &>/dev/null &
+echo "get $temp_file_path ${temp_file_name}_1" | tftp $addr $port &>/dev/null &
+echo "get $temp_file_path ${temp_file_name}_2" | tftp $addr $port &>/dev/null &
+echo "get $temp_file_path ${temp_file_name}_3" | tftp $addr $port &>/dev/null &
 
-wait
+sleep 15s
 
-rm "$temp_file_path" "$temp_file_name"
+cmp "$temp_file_path" "${temp_file_name}_1" &&
+cmp "$temp_file_path" "${temp_file_name}_2" &&
+cmp "$temp_file_path" "${temp_file_name}_3"
+res=$?
+
+echo_test_res "$ret" "--- Test 6: Multiple Clients"
+
+rm "$temp_file_path" "${temp_file_name}"*
 
 # ==================================
 #   Test: Interrupt Client
@@ -114,8 +124,9 @@ kill -9 $c_pid
 
 sleep 10s
 
+echo_test_res "0" "--- Test 7: Interrupt Client"
+
 rm "$temp_file_path" "$temp_file_name"
 
 # ----- Test Cleanup -----
 kill -9 $svr_pid
-rm "$log_file"
