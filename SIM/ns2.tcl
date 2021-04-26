@@ -15,6 +15,13 @@ switch $CASE_NO {
 	1 { set latency "12.5ms" }
 	2 { set latency "20ms"   }
 	3 { set latency "27.5ms" }
+	4 { set latency "35ms" }
+	5 { set latency "42.5ms" }
+	6 { set latency "50ms" }
+	7 { set latency "57.5ms" }
+	8 { set latency "65ms" }
+	9 { set latency "72.5ms" }
+	10 { set latency "145.5ms" }
 	default { puts "unsupported case number" }
 }
 
@@ -101,14 +108,14 @@ $ftp2 attach-agent $tcp_sender2
 
 # Setup scheduler
 $ns at 0.0   "$ftp1 start"
-$ns at 0.0   "$ftp2 start"
+$ns at 2.0   "$ftp2 start"
 $ns at 400.0 "$ftp1 stop"
 $ns at 400.0 "$ftp2 stop"
 
 # Procedure for recording throughput
 proc record {} {
 	global ns tcp_sink1 tcp_sink2 f1 f2
-	set time 0.5
+	set time 1.0
 	set bw1 [$tcp_sink1 set bytes_]
 	set bw2 [$tcp_sink2 set bytes_]
 	set now [$ns now]
